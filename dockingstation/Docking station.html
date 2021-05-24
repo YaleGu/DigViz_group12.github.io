@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset='utf-8' />
+    <title>Distribution of Docking Station</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1' />
+    <script src='https://api.mapbox.com/mapbox-gl-js/v2.2.0/mapbox-gl.js'></script>
+    <link href='https://api.mapbox.com/mapbox-gl-js/v2.2.0/mapbox-gl.css' rel='stylesheet' />
+
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Helvetica Neue', Helvetica, Arial, Sans-serif;
+        }
+
+        #map {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 100%;
+        }
+
+        h1 {
+            font-size: 18px;
+            line-height: 30px;
+        }
+
+        h2 {
+            font-size: 12px;
+            line-height: 20px;
+            margin-bottom: 10px;
+        }
+
+        a {
+            text-decoration: none;
+            color: #2dc4b2;
+        }
+
+        #console {
+            position: absolute;
+            width: 240px;
+            margin: 10px;
+            padding: 10px 20px;
+            background-color: white;
+            opacity: 0.7;
+        }
+
+        .map-overlay {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.8);
+            margin-right: 20px;
+            font-family: Arial, sans-serif;
+            overflow: auto;
+            border-radius: 3px;
+        }
+
+        #legend {
+            padding: 10px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            line-height: 18px;
+            height: 215px;
+            margin-bottom: 40px;
+            width: 100px;
+        }
+
+        .legend-key {
+            display: inline-block;
+            border-radius: 20%;
+            width: 10px;
+            height: 10px;
+            margin-right: 5px;
+        }
+
+    </style>
+
+</head>
+
+
+
+
+<body>
+    <div id='map'></div>
+    <div id='console'>
+        <h1>Distribution of Docking Station</h1>
+        <p>Data: <a href='https://data.cdrc.ac.uk/dataset/bicycle-sharing-system-docking-station-observations'>Historical locations of the docking stations for London</a> from Consumer Data Research Centre(CDRC)</p>
+
+        <div class='session'>
+<!--            <h2> Option</h2>-->
+            <div class='row' id='filters'>
+                <input id='all' type='checkbox' name='toggle' value='all' checked='checked'>
+                <label for='all' style='font-size: 14px'>Reset</label>
+                <!--
+            <input id='singleYear' type='radio' name='toggle' value=2010>
+            <label for='singleYear'>Single Year</label>
+-->
+
+            </div>
+        </div>
+
+
+
+        <div class='session' id='sliderbar'>
+            <h2>Year: <label id='active-year'>2021</label></h2>
+            <input id='slider' class='row' type='range' min='2010' max='2021' step='1' value='2021' />
+        </div>
+        
+    </div>
+    <div class='map-overlay' id='legend'></div>
+
+
+
+    <script>
+        mapboxgl.accessToken = 'pk.eyJ1IjoiYW5uZWd1dSIsImEiOiJja2hxOXl1Y2owNzJhMnJwYmk2YmMxYnZoIn0.Q8eejSLO2kx3Vrc6oyAmVA';
+
+        var map = new mapboxgl.Map({
+            container: 'map', // container element id
+            style: 'mapbox://styles/mapbox/light-v10',
+            center: [-0.1, 51.5], // initial map center in [lon, lat]
+            zoom: 11
+        });
+
+        map.on('load', function() {
+            var layers = ['2010', '2011', '2012', '2013', '2014', '2015', '2016', '2017', '2018', '2019', '2020', '2021'];
+            var colors = ['#E6B600', '#D7AB82', '#efa18d', '#d87c7c', '#cc7e63', '#AA5E79', '#b5c334', '#919e8b', '#787464', '#61a0a8', '#005eaa', '#4b565b', ];
+            for (i = 0; i < layers.length; i++) {
+                var layer = layers[i];
+                var color = colors[i];
+                var item = document.createElement('div');
+                var key = document.createElement('span');
+                key.className = 'legend-key';
+                key.style.backgroundColor = color;
+
+                var value = document.createElement('span');
+                value.innerHTML = layer;
+                item.appendChild(key);
+                item.appendChild(value);
+                legend.appendChild(item);
+            };
+
+
+            map.addLayer({
+                id: 'docking_station',
+                type: 'circle',
+                source: {
+                    type: 'geojson',
+                    data: 'https://raw.githubusercontent.com/YaleGu/GroupViz/main/bikelocations%20(2).geojson'
+                },
+                paint: {
+                    'circle-radius': ['interpolate',
+                        ['linear'],
+                        ['number', ['get', 'curr_size']],
+                        1, 1,
+                        64, 13
+                    ],
+                    'circle-color': [
+                        'match',
+                        ['get', 'creat_year'],
+                        2010, '#E6B600',
+                        2011, '#D7AB82',
+                        2012, '#efa18d',
+                        2013, '#d87c7c',
+                        2014, '#cc7e63',
+                        2015, '#AA5E79',
+                        2016, '#b5c334',
+                        2017, '#919e8b',
+                        2018, '#787464',
+                        2019, '#61a0a8',
+                        2020, '#005eaa',
+                        2021, '#4b565b',
+                        /* other */
+                        '#ccc'
+                    ],
+                    'circle-opacity': 1
+                },
+
+                //filter: ['==', ['number', ['get', 'creat_year']], 2010],
+
+            });
+            map.on('click', 'docking_station', function(e) {
+                new mapboxgl.Popup()
+                    .setLngLat(e.lngLat)
+                    .setHTML(e.features[0].properties['operator_name'] + ': ' + e.features[0].properties['curr_size'])
+                    .addTo(map);
+            });
+
+            // Change the cursor to a pointer when the mouse is over the states layer.
+            map.on('mouseenter', 'docking_station', function() {
+                map.getCanvas().style.cursor = 'pointer';
+            });
+
+            // Change it back to a pointer when it leaves.
+            map.on('mouseleave', 'docking_station', function() {
+                map.getCanvas().style.cursor = '';
+            });
+
+
+            document.getElementById('slider').addEventListener('input', function(e) {
+                var year = parseInt(e.target.value);
+                // update the map
+                map.setFilter('docking_station', ['<=', ['number', ['get', 'creat_year']], year]);
+
+                // update text in the UI
+                document.getElementById('active-year').innerText = year;
+            })
+        });
+
+        document.getElementById('filters').addEventListener('change', function(e) {
+            var years = e.target.value;
+            // update the map filter
+            if (years === 'all') {
+                //              map.setLayoutProperty('docking_station','visibility',
+                //                  e.target.checked ? 'visible' : 'none');
+                filterYears = window.location.reload();
+                //map[years].enable();
+            }
+            //            else if (years === 'singleYear') 
+            //          {filterYears = ['!=', ['number', ['get', 'creat_year']], years];
+            //         } 
+            else { //filterYears = ['!=', ['number', ['get', 'creat_year']], years];
+                //map.setLayoutProperty(filterYears, 'visibility', 'visible');
+                //map[years].disable();
+                console.log('error');
+            }
+            map.setFilter('docking_station', ['all', filterYears]);
+        });
+
+    </script>
+
+
+</body>
+
+</html>
